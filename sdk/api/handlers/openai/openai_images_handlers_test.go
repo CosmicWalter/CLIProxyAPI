@@ -1557,3 +1557,11 @@ func TestImagesStreamKeepAliveDoesNotSplitCompletedEventMidLine_Issue7330(t *tes
 		}
 	})
 }
+
+func TestGIFImageMimeType(t *testing.T) {
+	for _, format := range []string{"gif", " GIF ", "image/gif"} {
+		if got := mimeTypeFromOutputFormat(format); got != "image/gif" {
+			t.Fatalf("MIME for %q = %q, want image/gif", format, got)
+		}
+	}
+}

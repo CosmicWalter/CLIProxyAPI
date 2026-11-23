@@ -628,6 +628,8 @@ func mimeTypeFromOutputFormat(outputFormat string) string {
 		return "image/jpeg"
 	case "webp":
 		return "image/webp"
+	case "gif":
+		return "image/gif"
 	default:
 		return "image/png"
 	}
@@ -866,6 +868,11 @@ func (h *OpenAIAPIHandler) ImagesGenerations(c *gin.Context) {
 			_ = toolDoc.Set("partial_images", v.Int())
 		}
 	}
+	for _, field := range []string{"frame_count", "frame_duration_ms"} {
+		if v := ojson.GetBytesNoCopy(rawJSON, field); v.Exists() && v.Type == ojson.Number {
+			_ = toolDoc.Set(field, v.Int())
+		}
+	}
 	if v := strings.TrimSpace(ojson.GetBytesNoCopy(rawJSON, "moderation").String()); v != "" {
 		_ = toolDoc.Set("moderation", v)
 	}
@@ -1059,6 +1066,12 @@ func (h *OpenAIAPIHandler) imagesEditsFromMultipart(c *gin.Context) {
 		_ = toolDoc.Set("partial_images", parseIntField(v, 0))
 	}
 
+	for _, field := range []string{"frame_count", "frame_duration_ms"} {
+		if v := strings.TrimSpace(c.PostForm(field)); v != "" {
+			_ = toolDoc.Set(field, parseIntField(v, 0))
+		}
+	}
+
 	if maskDataURL != nil && strings.TrimSpace(*maskDataURL) != "" {
 		_ = toolDoc.Set("input_image_mask.image_url", strings.TrimSpace(*maskDataURL))
 	}
@@ -1192,7 +1205,7 @@ func (h *OpenAIAPIHandler) imagesEditsFromJSON(c *gin.Context) {
 		}
 	}
 
-	for _, field := range []string{"output_compression", "partial_images"} {
+	for _, field := range []string{"output_compression", "partial_images", "frame_count", "frame_duration_ms"} {
 		if v := ojson.GetBytesNoCopy(rawJSON, field); v.Exists() && v.Type == ojson.Number {
 			_ = toolDoc.Set(field, v.Int())
 		}

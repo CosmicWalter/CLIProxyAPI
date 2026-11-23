@@ -687,7 +687,7 @@ func codexSetOpenAIImageEditFormValueDoc(doc *ojson.Doc, path string, value stri
 func codexOpenAIImageEditFormJSONValue(key string, value string) []byte {
 	value = strings.TrimSpace(value)
 	switch strings.ToLower(strings.TrimSpace(key)) {
-	case "n", "output_compression", "partial_images":
+	case "n", "output_compression", "partial_images", "frame_count", "frame_duration_ms":
 		if parsed, errParse := strconv.ParseInt(value, 10, 64); errParse == nil {
 			raw, _ := json.Marshal(parsed)
 			return raw
@@ -841,7 +841,7 @@ func codexPrepareOpenAIImageGenerationJSON(rawJSON []byte, routeModel string) (c
 		return codexOpenAIImagePreparedRequest{}, fmt.Errorf("invalid OpenAI image generation request JSON")
 	}
 	prompt := strings.TrimSpace(ojson.GetBytesNoCopy(rawJSON, "prompt").String())
-	tool := codexBuildOpenAIImageTool(rawJSON, routeModel, "generate", []string{"size", "quality", "background", "output_format", "moderation"}, []string{"output_compression", "partial_images"})
+	tool := codexBuildOpenAIImageTool(rawJSON, routeModel, "generate", []string{"size", "quality", "background", "output_format", "moderation"}, []string{"output_compression", "partial_images", "frame_count", "frame_duration_ms"})
 	body := codexBuildImagesResponsesRequest(prompt, nil, tool)
 	return codexOpenAIImagePreparedRequest{
 		Body:           body,
@@ -864,7 +864,7 @@ func codexPrepareOpenAIImageEditJSON(rawJSON []byte, routeModel string) (codexOp
 			}
 		}
 	}
-	tool := codexBuildOpenAIImageTool(rawJSON, routeModel, "edit", []string{"size", "quality", "background", "output_format", "input_fidelity", "moderation"}, []string{"output_compression", "partial_images"})
+	tool := codexBuildOpenAIImageTool(rawJSON, routeModel, "edit", []string{"size", "quality", "background", "output_format", "input_fidelity", "moderation"}, []string{"output_compression", "partial_images", "frame_count", "frame_duration_ms"})
 	if mask := strings.TrimSpace(ojson.GetBytesNoCopy(rawJSON, "mask.image_url").String()); mask != "" {
 		tool, _ = ojson.SetBytes(tool, "input_image_mask.image_url", mask)
 	}
@@ -905,7 +905,7 @@ func codexPrepareOpenAIImageEditMultipart(rawBody []byte, routeModel string, con
 			_ = toolDoc.Set(field, value)
 		}
 	}
-	for _, field := range []string{"output_compression", "partial_images"} {
+	for _, field := range []string{"output_compression", "partial_images", "frame_count", "frame_duration_ms"} {
 		if value := strings.TrimSpace(codexFormValue(form, field)); value != "" {
 			if parsed, errParse := strconv.ParseInt(value, 10, 64); errParse == nil {
 				_ = toolDoc.Set(field, parsed)
@@ -1223,6 +1223,8 @@ func codexMimeTypeFromOutputFormat(outputFormat string) string {
 		return "image/jpeg"
 	case "webp":
 		return "image/webp"
+	case "gif":
+		return "image/gif"
 	default:
 		return "image/png"
 	}
